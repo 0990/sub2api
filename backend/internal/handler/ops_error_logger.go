@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"net/http"
 	"runtime"
 	"runtime/debug"
 	"strconv"
@@ -739,12 +740,15 @@ func OpsErrorLoggerMiddleware(ops *service.OpsService) gin.HandlerFunc {
 			}
 		}
 
+		apiKey, _ := middleware2.GetAPIKeyFromContext(c)
+		if shouldSkipUnauthenticatedModels401(c, status, apiKey) {
+			return
+		}
+
 		// Skip logging if the error should be filtered based on settings
 		if shouldSkipOpsErrorLog(c.Request.Context(), ops, parsed.Message, string(body), c.Request.URL.Path) {
 			return
 		}
-
-		apiKey, _ := middleware2.GetAPIKeyFromContext(c)
 
 		clientRequestID, _ := c.Request.Context().Value(ctxkey.ClientRequestID).(string)
 
@@ -934,6 +938,17 @@ func isCountTokensRequest(c *gin.Context) bool {
 		return false
 	}
 	return strings.Contains(c.Request.URL.Path, "/count_tokens")
+}
+
+func shouldSkipUnauthenticatedModels401(c *gin.Context, status int, apiKey *service.APIKey) bool {
+	if status != http.StatusUnauthorized || apiKey != nil {
+		return false
+	}
+	if c == nil || c.Request == nil || c.Request.URL == nil {
+		return false
+	}
+	path := strings.TrimRight(strings.ToLower(strings.TrimSpace(c.Request.URL.Path)), "/")
+	return path == "/v1/models"
 }
 
 func extractOpsRetryRequestHeaders(c *gin.Context) *string {

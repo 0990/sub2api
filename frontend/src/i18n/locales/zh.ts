@@ -5309,6 +5309,10 @@ export default {
         visibility: '可见角色',
         visibilityUser: '普通用户',
         visibilityAdmin: '管理员',
+        openMode: '\u6253\u5f00\u65b9\u5f0f',
+        openModeIframe: '\u5d4c\u5165\u9875\u9762',
+        openModeNewTab: '\u65b0\u7a97\u53e3\u6253\u5f00',
+        openModeHint: '\u5916\u90e8\u652f\u4ed8\u6216\u53d1\u5361\u9875\u9762\u5efa\u8bae\u4f7f\u7528\u65b0\u7a97\u53e3\uff0c\u907f\u514d iframe \u88ab\u62e6\u622a\u3002',
         add: '添加菜单项',
         remove: '删除',
         moveUp: '上移',
@@ -6020,6 +6024,8 @@ export default {
     notFoundDesc: '该自定义页面不存在或已被删除。',
     notConfiguredTitle: '页面链接未配置',
     notConfiguredDesc: '该自定义页面的 URL 未正确配置。',
+    newTabTitle: '\u6b64\u9875\u9762\u5c06\u5728\u65b0\u7a97\u53e3\u6253\u5f00',
+    newTabDesc: '\u5916\u90e8\u7ad9\u70b9\u53ef\u80fd\u4f1a\u9650\u5236\u540e\u53f0\u5d4c\u5165\uff0c\u65b0\u7a97\u53e3\u6253\u5f00\u53ef\u4fdd\u8bc1\u652f\u4ed8\u3001\u8df3\u8f6c\u548c\u767b\u5f55\u6d41\u7a0b\u6b63\u5e38\u3002',
   },
 
   // Announcements Page

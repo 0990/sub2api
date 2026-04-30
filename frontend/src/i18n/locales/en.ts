@@ -5148,6 +5148,10 @@ export default {
         visibility: 'Visible To',
         visibilityUser: 'Regular Users',
         visibilityAdmin: 'Administrators',
+        openMode: 'Open Mode',
+        openModeIframe: 'Embedded page',
+        openModeNewTab: 'New window',
+        openModeHint: 'Use a new window for payment or card shops that block iframe embedding.',
         add: 'Add Menu Item',
         remove: 'Remove',
         moveUp: 'Move Up',
@@ -5861,6 +5865,8 @@ export default {
     notFoundDesc: 'This custom page does not exist or has been removed.',
     notConfiguredTitle: 'Page URL not configured',
     notConfiguredDesc: 'The URL for this custom page has not been properly configured.',
+    newTabTitle: 'This page opens in a new window',
+    newTabDesc: 'External sites may block admin-panel embedding. Open it in a new window for reliable checkout and redirects.',
   },
 
   // Announcements Page

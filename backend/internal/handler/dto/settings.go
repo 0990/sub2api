@@ -12,6 +12,7 @@ type CustomMenuItem struct {
 	IconSVG    string `json:"icon_svg"`
 	URL        string `json:"url"`
 	Visibility string `json:"visibility"` // "user" or "admin"
+	OpenMode   string `json:"open_mode"`  // "iframe" or "new_tab"
 	SortOrder  int    `json:"sort_order"`
 }
 

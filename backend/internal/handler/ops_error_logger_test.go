@@ -215,6 +215,34 @@ func TestOpsErrorLoggerMiddleware_DoesNotBreakOuterMiddlewares(t *testing.T) {
 	require.Equal(t, http.StatusNoContent, rec.Code)
 }
 
+func TestShouldSkipUnauthenticatedModels401(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	tests := []struct {
+		name   string
+		path   string
+		status int
+		apiKey *service.APIKey
+		want   bool
+	}{
+		{name: "unauthenticated models 401", path: "/v1/models", status: http.StatusUnauthorized, want: true},
+		{name: "unauthenticated models trailing slash", path: "/v1/models/", status: http.StatusUnauthorized, want: true},
+		{name: "authenticated models 401 stays visible", path: "/v1/models", status: http.StatusUnauthorized, apiKey: &service.APIKey{ID: 1}, want: false},
+		{name: "other endpoint 401 stays visible", path: "/v1/chat/completions", status: http.StatusUnauthorized, want: false},
+		{name: "models non-401 stays visible", path: "/v1/models", status: http.StatusForbidden, want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(rec)
+			c.Request = httptest.NewRequest(http.MethodGet, tt.path, nil)
+
+			require.Equal(t, tt.want, shouldSkipUnauthenticatedModels401(c, tt.status, tt.apiKey))
+		})
+	}
+}
+
 func TestIsKnownOpsErrorType(t *testing.T) {
 	known := []string{
 		"invalid_request_error",

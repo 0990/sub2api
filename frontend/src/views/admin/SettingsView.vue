@@ -3702,7 +3702,7 @@
                         </svg>
                       </button>
                     </div>
-                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                       <div>
                         <label
                           class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400"
@@ -4009,8 +4009,28 @@
                     </select>
                   </div>
 
+                  <!-- Open mode -->
+                  <div>
+                    <label
+                      class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400"
+                    >
+                      {{ t("admin.settings.customMenu.openMode") }}
+                    </label>
+                    <select v-model="item.open_mode" class="input text-sm">
+                      <option value="iframe">
+                        {{ t("admin.settings.customMenu.openModeIframe") }}
+                      </option>
+                      <option value="new_tab">
+                        {{ t("admin.settings.customMenu.openModeNewTab") }}
+                      </option>
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      {{ t("admin.settings.customMenu.openModeHint") }}
+                    </p>
+                  </div>
+
                   <!-- URL (full width) -->
-                  <div class="sm:col-span-2">
+                  <div class="sm:col-span-2 lg:col-span-3">
                     <label
                       class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400"
                     >
@@ -4027,7 +4047,7 @@
                   </div>
 
                   <!-- SVG Icon (full width) -->
-                  <div class="sm:col-span-2">
+                  <div class="sm:col-span-2 lg:col-span-3">
                     <label
                       class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400"
                     >
@@ -5740,6 +5760,7 @@ const form = reactive<SettingsForm>({
     icon_svg: string;
     url: string;
     visibility: "user" | "admin";
+    open_mode?: "iframe" | "new_tab";
     sort_order: number;
   }>,
   custom_endpoints: [] as Array<{
@@ -6276,6 +6297,7 @@ function addMenuItem() {
     icon_svg: "",
     url: "",
     visibility: "user",
+    open_mode: "iframe",
     sort_order: form.custom_menu_items.length,
   });
 }
@@ -6354,6 +6376,10 @@ async function loadSettings() {
         (form as Record<string, unknown>)[key] = value;
       }
     }
+    form.custom_menu_items = (form.custom_menu_items || []).map((item) => ({
+      ...item,
+      open_mode: item.open_mode === "new_tab" ? "new_tab" : "iframe",
+    }));
     Object.assign(authSourceDefaults, buildAuthSourceDefaultsState(settings));
     form.backend_mode_enabled = settings.backend_mode_enabled;
     form.default_subscriptions = normalizeDefaultSubscriptionSettings(
@@ -6663,7 +6689,10 @@ async function saveSettings() {
       hide_ccs_import_button: form.hide_ccs_import_button,
       table_default_page_size: form.table_default_page_size,
       table_page_size_options: form.table_page_size_options,
-      custom_menu_items: form.custom_menu_items,
+      custom_menu_items: form.custom_menu_items.map((item) => ({
+        ...item,
+        open_mode: item.open_mode === "new_tab" ? "new_tab" : "iframe",
+      })),
       custom_endpoints: form.custom_endpoints,
       frontend_url: form.frontend_url,
       smtp_host: form.smtp_host,
