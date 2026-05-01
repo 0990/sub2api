@@ -135,6 +135,10 @@ func (h *OpenAIGatewayHandler) Responses(c *gin.Context) {
 		return
 	}
 
+	if h.rejectSensitiveWordForOpenAI(c, body) {
+		return
+	}
+
 	setOpsRequestContext(c, "", false, body)
 	sessionHashBody := body
 	if service.IsOpenAIResponsesCompactPathForTest(c) {
@@ -557,6 +561,10 @@ func (h *OpenAIGatewayHandler) Messages(c *gin.Context) {
 	}
 	if len(body) == 0 {
 		h.anthropicErrorResponse(c, http.StatusBadRequest, "invalid_request_error", "Request body is empty")
+		return
+	}
+
+	if h.rejectSensitiveWordForAnthropic(c, body) {
 		return
 	}
 

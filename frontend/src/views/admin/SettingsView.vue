@@ -3082,6 +3082,42 @@
                   v-model="form.enable_anthropic_cache_ttl_1h_injection"
                 />
               </div>
+
+              <!-- Sensitive Word Filter -->
+              <div class="space-y-3 border-t border-gray-100 pt-5 dark:border-dark-700">
+                <div class="flex items-center justify-between gap-4">
+                  <div>
+                    <label
+                      class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                    >
+                      {{ t("admin.settings.gatewayForwarding.sensitiveWordFilter") }}
+                    </label>
+                    <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                      {{ t("admin.settings.gatewayForwarding.sensitiveWordFilterHint") }}
+                    </p>
+                  </div>
+                  <Toggle v-model="form.sensitive_word_filter_enabled" />
+                </div>
+
+                <div>
+                  <label
+                    class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    {{ t("admin.settings.gatewayForwarding.sensitiveWords") }}
+                  </label>
+                  <textarea
+                    v-model="sensitiveWordFilterWordsText"
+                    rows="5"
+                    class="input min-h-32 w-full font-mono text-sm"
+                    :placeholder="
+                      t('admin.settings.gatewayForwarding.sensitiveWordsPlaceholder')
+                    "
+                  ></textarea>
+                  <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                    {{ t("admin.settings.gatewayForwarding.sensitiveWordsHint") }}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
           <!-- Web Search Emulation -->
@@ -5857,6 +5893,8 @@ const form = reactive<SettingsForm>({
   enable_metadata_passthrough: false,
   enable_cch_signing: false,
   enable_anthropic_cache_ttl_1h_injection: false,
+  sensitive_word_filter_enabled: false,
+  sensitive_word_filter_words: [],
   // Balance & quota notification
   balance_low_notify_enabled: false,
   balance_low_notify_threshold: 0,
@@ -5916,6 +5954,21 @@ const wsTestQuery = ref("");
 const wsTestLoading = ref(false);
 const wsTestResult = ref<WebSearchTestResult | null>(null);
 const wsTestDialogOpen = ref(false);
+const sensitiveWordFilterWordsText = ref("");
+
+function parseSensitiveWordFilterWords(value: string): string[] {
+  const words: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of value.split(/\r?\n/)) {
+    const trimmed = raw.trim();
+    if (!trimmed) continue;
+    const key = trimmed.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    words.push(trimmed);
+  }
+  return words;
+}
 
 function openTestDialog() {
   wsTestResult.value = null;
@@ -6385,6 +6438,11 @@ async function loadSettings() {
     form.default_subscriptions = normalizeDefaultSubscriptionSettings(
       settings.default_subscriptions,
     );
+    sensitiveWordFilterWordsText.value = Array.isArray(
+      settings.sensitive_word_filter_words,
+    )
+      ? settings.sensitive_word_filter_words.join("\n")
+      : "";
     registrationEmailSuffixWhitelistTags.value =
       normalizeRegistrationEmailSuffixDomains(
         settings.registration_email_suffix_whitelist,
@@ -6775,6 +6833,10 @@ async function saveSettings() {
       enable_cch_signing: form.enable_cch_signing,
       enable_anthropic_cache_ttl_1h_injection:
         form.enable_anthropic_cache_ttl_1h_injection,
+      sensitive_word_filter_enabled: form.sensitive_word_filter_enabled,
+      sensitive_word_filter_words: parseSensitiveWordFilterWords(
+        sensitiveWordFilterWordsText.value,
+      ),
       // Payment configuration
       payment_enabled: form.payment_enabled,
       payment_min_amount: Number(form.payment_min_amount) || 0,
@@ -6860,6 +6922,11 @@ async function saveSettings() {
       }
     }
     Object.assign(authSourceDefaults, buildAuthSourceDefaultsState(updated));
+    sensitiveWordFilterWordsText.value = Array.isArray(
+      updated.sensitive_word_filter_words,
+    )
+      ? updated.sensitive_word_filter_words.join("\n")
+      : "";
     registrationEmailSuffixWhitelistTags.value =
       normalizeRegistrationEmailSuffixDomains(
         updated.registration_email_suffix_whitelist,

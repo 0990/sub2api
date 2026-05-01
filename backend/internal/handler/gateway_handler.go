@@ -147,6 +147,10 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 		return
 	}
 
+	if h.rejectSensitiveWordForAnthropic(c, body) {
+		return
+	}
+
 	setOpsRequestContext(c, "", false, body)
 
 	parsedReq, err := service.ParseGatewayRequest(body, domain.PlatformAnthropic)

@@ -428,6 +428,13 @@ func (s *OpenAIGatewayService) IsModelRestricted(ctx context.Context, groupID in
 	return s.channelService.IsModelRestricted(ctx, groupID, model)
 }
 
+func (s *OpenAIGatewayService) SensitiveWordFilterMatched(ctx context.Context, body []byte) bool {
+	if s == nil {
+		return false
+	}
+	return CheckSensitiveWordPolicy(ctx, s.settingService, body)
+}
+
 // ResolveChannelMappingAndRestrict 解析渠道映射。
 // 模型限制检查已移至调度阶段，restricted 始终返回 false。
 func (s *OpenAIGatewayService) ResolveChannelMappingAndRestrict(ctx context.Context, groupID *int64, model string) (ChannelMappingResult, bool) {

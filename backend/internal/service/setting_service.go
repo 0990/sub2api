@@ -1247,6 +1247,9 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	updates[SettingKeyEnableMetadataPassthrough] = strconv.FormatBool(settings.EnableMetadataPassthrough)
 	updates[SettingKeyEnableCCHSigning] = strconv.FormatBool(settings.EnableCCHSigning)
 	updates[SettingKeyEnableAnthropicCacheTTL1hInjection] = strconv.FormatBool(settings.EnableAnthropicCacheTTL1hInjection)
+	updates[SettingKeySensitiveWordFilterEnabled] = strconv.FormatBool(settings.SensitiveWordFilterEnabled)
+	settings.SensitiveWordFilterWords = NormalizeSensitiveWordFilterWords(settings.SensitiveWordFilterWords)
+	updates[SettingKeySensitiveWordFilterWords] = MarshalSensitiveWordFilterWords(settings.SensitiveWordFilterWords)
 	updates[SettingPaymentVisibleMethodAlipaySource] = settings.PaymentVisibleMethodAlipaySource
 	updates[SettingPaymentVisibleMethodWxpaySource] = settings.PaymentVisibleMethodWxpaySource
 	updates[SettingPaymentVisibleMethodAlipayEnabled] = strconv.FormatBool(settings.PaymentVisibleMethodAlipayEnabled)
@@ -1312,6 +1315,14 @@ func (s *SettingService) refreshCachedSettings(settings *SystemSettings) {
 		cchSigning:                   settings.EnableCCHSigning,
 		anthropicCacheTTL1hInjection: settings.EnableAnthropicCacheTTL1hInjection,
 		expiresAt:                    time.Now().Add(gatewayForwardingCacheTTL).UnixNano(),
+	})
+	sensitiveWordFilterSF.Forget("sensitive_word_filter")
+	sensitiveWordFilterCache.Store(&cachedSensitiveWordFilterSettings{
+		settings: SensitiveWordFilterSettings{
+			Enabled: settings.SensitiveWordFilterEnabled,
+			Words:   NormalizeSensitiveWordFilterWords(settings.SensitiveWordFilterWords),
+		},
+		expiresAt: time.Now().Add(sensitiveWordFilterCacheTTL).UnixNano(),
 	})
 	openAIAdvancedSchedulerSettingSF.Forget(openAIAdvancedSchedulerSettingKey)
 	openAIAdvancedSchedulerSettingCache.Store(&cachedOpenAIAdvancedSchedulerSetting{
@@ -1910,6 +1921,8 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		// 分组隔离（默认不允许未分组 Key 调度）
 		SettingKeyAllowUngroupedKeyScheduling:        "false",
 		SettingKeyEnableAnthropicCacheTTL1hInjection: "false",
+		SettingKeySensitiveWordFilterEnabled:         "false",
+		SettingKeySensitiveWordFilterWords:           "[]",
 		SettingPaymentVisibleMethodAlipaySource:      "",
 		SettingPaymentVisibleMethodWxpaySource:       "",
 		SettingPaymentVisibleMethodAlipayEnabled:     "false",
@@ -2258,6 +2271,8 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 	result.EnableMetadataPassthrough = settings[SettingKeyEnableMetadataPassthrough] == "true"
 	result.EnableCCHSigning = settings[SettingKeyEnableCCHSigning] == "true"
 	result.EnableAnthropicCacheTTL1hInjection = settings[SettingKeyEnableAnthropicCacheTTL1hInjection] == "true"
+	result.SensitiveWordFilterEnabled = settings[SettingKeySensitiveWordFilterEnabled] == "true"
+	result.SensitiveWordFilterWords = ParseSensitiveWordFilterWords(settings[SettingKeySensitiveWordFilterWords])
 
 	// Web search emulation: quick enabled check from the JSON config
 	if raw := settings[SettingKeyWebSearchEmulationConfig]; raw != "" {

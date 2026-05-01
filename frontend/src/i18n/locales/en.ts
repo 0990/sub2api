@@ -5021,6 +5021,11 @@ export default {
         cchSigningHint: 'Sign the billing header in forwarded requests with CCH hash. When disabled, the placeholder is preserved.',
         anthropicCacheTTL1hInjection: 'Anthropic Cache TTL Injection',
         anthropicCacheTTL1hInjectionHint: 'When enabled, existing ephemeral cache_control blocks in Anthropic OAuth/Setup Token request bodies are forced to 1h; response usage is billed back as 5m by default, with account-level TTL billing override taking priority.',
+        sensitiveWordFilter: 'Sensitive Word Filter',
+        sensitiveWordFilterHint: 'Block text gateway requests when the raw JSON request body contains a configured word.',
+        sensitiveWords: 'Sensitive Words',
+        sensitiveWordsPlaceholder: 'One word per line',
+        sensitiveWordsHint: 'Matching is case-insensitive and scans the entire JSON request body. Matched words are not returned to users.',
       },
       webSearchEmulation: {
         title: 'Web Search Emulation',

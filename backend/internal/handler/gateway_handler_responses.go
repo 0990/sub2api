@@ -60,6 +60,10 @@ func (h *GatewayHandler) Responses(c *gin.Context) {
 		return
 	}
 
+	if h.rejectSensitiveWordForOpenAIResponses(c, body) {
+		return
+	}
+
 	setOpsRequestContext(c, "", false, body)
 
 	// Validate JSON

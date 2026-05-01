@@ -338,6 +338,8 @@ const (
 	SettingKeyEnableCCHSigning = "enable_cch_signing"
 	// SettingKeyEnableAnthropicCacheTTL1hInjection 是否对 Anthropic OAuth/SetupToken 请求体注入 1h cache_control ttl（默认 false）
 	SettingKeyEnableAnthropicCacheTTL1hInjection = "enable_anthropic_cache_ttl_1h_injection"
+	SettingKeySensitiveWordFilterEnabled         = "sensitive_word_filter_enabled"
+	SettingKeySensitiveWordFilterWords           = "sensitive_word_filter_words"
 
 	// Balance Low Notification
 	SettingKeyBalanceLowNotifyEnabled     = "balance_low_notify_enabled"      // 全局开关

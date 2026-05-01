@@ -210,6 +210,8 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		EnableMetadataPassthrough:              settings.EnableMetadataPassthrough,
 		EnableCCHSigning:                       settings.EnableCCHSigning,
 		EnableAnthropicCacheTTL1hInjection:     settings.EnableAnthropicCacheTTL1hInjection,
+		SensitiveWordFilterEnabled:             settings.SensitiveWordFilterEnabled,
+		SensitiveWordFilterWords:               settings.SensitiveWordFilterWords,
 		WebSearchEmulationEnabled:              settings.WebSearchEmulationEnabled,
 		PaymentVisibleMethodAlipaySource:       settings.PaymentVisibleMethodAlipaySource,
 		PaymentVisibleMethodWxpaySource:        settings.PaymentVisibleMethodWxpaySource,
@@ -442,10 +444,12 @@ type UpdateSettingsRequest struct {
 	BackendModeEnabled bool `json:"backend_mode_enabled"`
 
 	// Gateway forwarding behavior
-	EnableFingerprintUnification       *bool `json:"enable_fingerprint_unification"`
-	EnableMetadataPassthrough          *bool `json:"enable_metadata_passthrough"`
-	EnableCCHSigning                   *bool `json:"enable_cch_signing"`
-	EnableAnthropicCacheTTL1hInjection *bool `json:"enable_anthropic_cache_ttl_1h_injection"`
+	EnableFingerprintUnification       *bool     `json:"enable_fingerprint_unification"`
+	EnableMetadataPassthrough          *bool     `json:"enable_metadata_passthrough"`
+	EnableCCHSigning                   *bool     `json:"enable_cch_signing"`
+	EnableAnthropicCacheTTL1hInjection *bool     `json:"enable_anthropic_cache_ttl_1h_injection"`
+	SensitiveWordFilterEnabled         *bool     `json:"sensitive_word_filter_enabled"`
+	SensitiveWordFilterWords           *[]string `json:"sensitive_word_filter_words"`
 
 	// Payment visible method routing
 	PaymentVisibleMethodAlipaySource  *string `json:"payment_visible_method_alipay_source"`
@@ -1287,6 +1291,18 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 			}
 			return previousSettings.EnableAnthropicCacheTTL1hInjection
 		}(),
+		SensitiveWordFilterEnabled: func() bool {
+			if req.SensitiveWordFilterEnabled != nil {
+				return *req.SensitiveWordFilterEnabled
+			}
+			return previousSettings.SensitiveWordFilterEnabled
+		}(),
+		SensitiveWordFilterWords: func() []string {
+			if req.SensitiveWordFilterWords != nil {
+				return service.NormalizeSensitiveWordFilterWords(*req.SensitiveWordFilterWords)
+			}
+			return previousSettings.SensitiveWordFilterWords
+		}(),
 		PaymentVisibleMethodAlipaySource: func() string {
 			if req.PaymentVisibleMethodAlipaySource != nil {
 				return strings.TrimSpace(*req.PaymentVisibleMethodAlipaySource)
@@ -1585,6 +1601,8 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		EnableMetadataPassthrough:              updatedSettings.EnableMetadataPassthrough,
 		EnableCCHSigning:                       updatedSettings.EnableCCHSigning,
 		EnableAnthropicCacheTTL1hInjection:     updatedSettings.EnableAnthropicCacheTTL1hInjection,
+		SensitiveWordFilterEnabled:             updatedSettings.SensitiveWordFilterEnabled,
+		SensitiveWordFilterWords:               updatedSettings.SensitiveWordFilterWords,
 		PaymentVisibleMethodAlipaySource:       updatedSettings.PaymentVisibleMethodAlipaySource,
 		PaymentVisibleMethodWxpaySource:        updatedSettings.PaymentVisibleMethodWxpaySource,
 		PaymentVisibleMethodAlipayEnabled:      updatedSettings.PaymentVisibleMethodAlipayEnabled,
@@ -1966,6 +1984,12 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	}
 	if before.EnableAnthropicCacheTTL1hInjection != after.EnableAnthropicCacheTTL1hInjection {
 		changed = append(changed, "enable_anthropic_cache_ttl_1h_injection")
+	}
+	if before.SensitiveWordFilterEnabled != after.SensitiveWordFilterEnabled {
+		changed = append(changed, "sensitive_word_filter_enabled")
+	}
+	if !equalStringSlice(before.SensitiveWordFilterWords, after.SensitiveWordFilterWords) {
+		changed = append(changed, "sensitive_word_filter_words")
 	}
 	if before.PaymentVisibleMethodAlipaySource != after.PaymentVisibleMethodAlipaySource {
 		changed = append(changed, "payment_visible_method_alipay_source")

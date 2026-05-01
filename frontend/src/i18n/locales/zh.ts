@@ -5180,6 +5180,11 @@ export default {
         cchSigningHint: '对转发请求的 billing header 进行 CCH 哈希签名。关闭时保留原始占位符。',
         anthropicCacheTTL1hInjection: 'Anthropic 缓存 TTL 注入',
         anthropicCacheTTL1hInjectionHint: '开启后，对 Anthropic OAuth/Setup Token 请求体中已有的 ephemeral 缓存块强制写入 1h；响应 usage 默认按 5m 回写计费，账号级 TTL 计费设置优先。',
+        sensitiveWordFilter: '敏感词过滤',
+        sensitiveWordFilterHint: '当原始 JSON 请求体包含配置词条时，直接拦截文本类网关请求。',
+        sensitiveWords: '敏感词列表',
+        sensitiveWordsPlaceholder: '每行一个敏感词',
+        sensitiveWordsHint: '匹配忽略大小写，并扫描整个 JSON 请求体；命中的词不会返回给用户。',
       },
       webSearchEmulation: {
         title: 'Web Search 模拟',

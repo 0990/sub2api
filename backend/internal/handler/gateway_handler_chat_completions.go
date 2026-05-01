@@ -60,6 +60,10 @@ func (h *GatewayHandler) ChatCompletions(c *gin.Context) {
 		return
 	}
 
+	if h.rejectSensitiveWordForOpenAIChat(c, body) {
+		return
+	}
+
 	setOpsRequestContext(c, "", false, body)
 
 	// Validate JSON
