@@ -1,4 +1,4 @@
-name: Deploy pre environment
+name: 部署到测试服
 
 on:
   workflow_dispatch:
