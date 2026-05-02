@@ -1,0 +1,166 @@
+name: Deploy pre environment
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-pre
+  cancel-in-progress: false
+
+env:
+  IMAGE_NAME: 0990/sub2api
+  DEPLOY_DIR: /data/sub2api-deploy
+
+jobs:
+  deploy:
+    name: Build image and deploy pre environment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set image metadata
+        id: image
+        run: |
+          set -eu
+
+          GIT_TAG="$(git tag --points-at HEAD --sort=-v:refname | head -n1 || true)"
+          SHORT_SHA="$(git rev-parse --short=7 HEAD)"
+          COMMIT_SHA="$(git rev-parse HEAD)"
+          DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+          if [ -n "$GIT_TAG" ]; then
+            IMAGE_TAG="$GIT_TAG"
+          else
+            IMAGE_TAG="$SHORT_SHA"
+          fi
+
+          if ! printf '%s' "$IMAGE_TAG" | grep -Eq '^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$'; then
+            echo "Invalid Docker image tag resolved from git ref: $IMAGE_TAG" >&2
+            exit 1
+          fi
+
+          VERSION="${IMAGE_TAG#v}"
+          IMAGE_REF="${IMAGE_NAME}:${IMAGE_TAG}"
+
+          echo "tag=${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "commit=${COMMIT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "date=${DATE}" >> "$GITHUB_OUTPUT"
+          echo "ref=${IMAGE_REF}" >> "$GITHUB_OUTPUT"
+
+          echo "Resolved image: ${IMAGE_REF}"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME || secrets.DOCKERHUB_USERNAME || '0990' }}
+          password: ${{ secrets.DOCKER_PASSWORD || secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.image.outputs.ref }}
+          build-args: |
+            VERSION=${{ steps.image.outputs.version }}
+            COMMIT=${{ steps.image.outputs.commit }}
+            DATE=${{ steps.image.outputs.date }}
+
+      - name: Install SSH password client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sshpass openssh-client
+
+      - name: Deploy to pre environment
+        env:
+          IMAGE_REF: ${{ steps.image.outputs.ref }}
+          PRE_DEPLOY_HOST: ${{ secrets.PRE_DEPLOY_HOST }}
+          PRE_DEPLOY_USER: ${{ secrets.PRE_DEPLOY_USER }}
+          PRE_DEPLOY_PASSWORD: ${{ secrets.PRE_DEPLOY_PASSWORD }}
+          PRE_DEPLOY_PORT: ${{ secrets.PRE_DEPLOY_PORT }}
+        run: |
+          set -eu
+
+          : "${PRE_DEPLOY_HOST:?PRE_DEPLOY_HOST secret is required}"
+          : "${PRE_DEPLOY_USER:?PRE_DEPLOY_USER secret is required}"
+          : "${PRE_DEPLOY_PASSWORD:?PRE_DEPLOY_PASSWORD secret is required}"
+
+          PRE_DEPLOY_PORT="${PRE_DEPLOY_PORT:-22}"
+          export SSHPASS="$PRE_DEPLOY_PASSWORD"
+
+          sshpass -e ssh \
+            -o StrictHostKeyChecking=accept-new \
+            -p "$PRE_DEPLOY_PORT" \
+            "${PRE_DEPLOY_USER}@${PRE_DEPLOY_HOST}" \
+            sh -s -- "$IMAGE_REF" "$DEPLOY_DIR" <<'REMOTE_SCRIPT'
+          set -eu
+
+          IMAGE_REF="$1"
+          DEPLOY_DIR="$2"
+
+          cd "$DEPLOY_DIR"
+
+          if [ ! -f docker-compose.sub2api.yml ]; then
+            echo "docker-compose.sub2api.yml not found in $DEPLOY_DIR" >&2
+            exit 1
+          fi
+
+          BACKUP_FILE="docker-compose.sub2api.yml.bak.$(date -u +%Y%m%d%H%M%S)"
+          cp docker-compose.sub2api.yml "$BACKUP_FILE"
+
+          TMP_FILE="$(mktemp)"
+          if ! awk -v image="$IMAGE_REF" '
+            BEGIN {
+              in_sub2api = 0
+              replaced = 0
+            }
+            /^  sub2api:[[:space:]]*$/ {
+              in_sub2api = 1
+              print
+              next
+            }
+            in_sub2api && /^    image:[[:space:]]*/ {
+              print "    image: " image
+              replaced = 1
+              in_sub2api = 0
+              next
+            }
+            in_sub2api && /^  [A-Za-z0-9_.-]+:[[:space:]]*$/ {
+              in_sub2api = 0
+            }
+            {
+              print
+            }
+            END {
+              if (!replaced) {
+                exit 42
+              }
+            }
+          ' docker-compose.sub2api.yml > "$TMP_FILE"; then
+            rm -f "$TMP_FILE"
+            echo "Failed to update sub2api image in docker-compose.sub2api.yml" >&2
+            exit 1
+          fi
+
+          mv "$TMP_FILE" docker-compose.sub2api.yml
+
+          docker pull "$IMAGE_REF"
+          chmod +x ./start-sub2api-pre.sh
+          ./start-sub2api-pre.sh
+          docker compose \
+            --env-file ./.env \
+            --env-file ./.env.pre \
+            -f docker-compose.sub2api.yml \
+            ps sub2api
+          REMOTE_SCRIPT
